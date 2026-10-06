@@ -31,7 +31,7 @@
     o link, ja com a conta certa escolhida.
 
       .../agenda-comercial/                -> seletor de conta, a pessoa escolhe
-      .../agenda-comercial/?e=<e-mail>     -> seletor com aquela conta escolhida (o link do convite)
+      .../agenda-comercial/?e=<e-mail>     -> /exec?authuser=<e-mail>: abre direto naquela conta (o link do convite)
 
     A /exec abaixo e a do deployment AKfycbxCmbK8…WjGc do projeto A. Republicar com
     `create-deployment -i <mesmo id>` MANTEM este endereco; criar outro deployment o mata
@@ -90,10 +90,17 @@
         return /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(e) ? e : '';
       }
 
+      /**
+       * Com e-mail: a /exec direta com `?authuser=<e-mail>` — o script.google.com honra o authuser e
+       * abre NAQUELA conta, mesmo com outras logadas (o mesmo truque do Gmail no Portal, LEV-020 §7.5).
+       * Sem e-mail: o seletor de conta do Google, e a pessoa escolhe.
+       * O que NÃO funciona: o AccountChooser com Email= e continue=<exec>. O chooser escolhe a conta, mas o
+       * script.google.com não herda a escolha: segue na conta padrão do navegador (/u/0) ou numa
+       * conta Workspace (vira /a/<domínio>/… e dá "Não foi possível abrir o arquivo"). Visto em 06/10.
+       */
       function destino(email) {
-        return 'https://accounts.google.com/AccountChooser?'
-          + (email ? 'Email=' + encodeURIComponent(email) + '&' : '')
-          + 'continue=' + encodeURIComponent(EXEC);
+        if (email) return EXEC + '?authuser=' + encodeURIComponent(email);
+        return 'https://accounts.google.com/AccountChooser?continue=' + encodeURIComponent(EXEC);
       }
 
       var email = emailDaUrl();
@@ -102,7 +109,7 @@
       a.href = url;
       if (email) {
         document.getElementById('sub').textContent = 'Abrindo com a conta ' + email + '…';
-        document.getElementById('nota').textContent = 'O convite é para esta conta. Se o Google pedir para entrar, use ela.';
+        document.getElementById('nota').textContent = 'O convite é para esta conta. Se o Google pedir para entrar, entre com ela.';
       }
       // o clique do botão é o caminho garantido; o automático é só a comodidade
       window.setTimeout(function () { window.location.replace(url); }, 700);

@@ -16,8 +16,13 @@ o card #22 do Hub está `via: 'exec'`.
 
 O que este wrapper resolve é o outro problema, o mesmo que fez os demais existirem: a `/exec`
 crua passa pelo roteador `/u/N/` do Google, e quem está com duas contas logadas (a pessoal e a da
-equipe) abre na **conta errada** — o app responde "seu e-mail ainda não foi convidado". Aqui a
-pessoa vai pelo **seletor de conta**, e o `?e=` do convite já escolhe a conta certa.
+equipe) abre na **conta errada** — o app responde "seu e-mail ainda não foi convidado". Com o `?e=`
+do convite, o wrapper manda para a `/exec?authuser=<e-mail>`, que abre **naquela** conta; sem `?e=`,
+vai pelo **seletor de conta** do Google.
+
+**Não usar `AccountChooser?Email=…&continue=<exec>`** (era o desenho até 06/10): o chooser escolhe a
+conta, mas o script.google.com não herda a escolha — cai na conta padrão (`/u/0`) ou numa conta
+Workspace, vira `/a/<domínio>/…` e dá "Não foi possível abrir o arquivo".
 
 ## Publicar
 
