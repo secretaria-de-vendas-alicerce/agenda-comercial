@@ -26,6 +26,8 @@
   <button id="planoB" class="sec" disabled>Item 6 · plano B (mandar o código pela URL)</button>
   <p id="abrir"></p>
   <pre id="saida">carregando o Google…</pre>
+  <iframe id="app" credentialless title="F0 · app" referrerpolicy="no-referrer"
+    style="display:none; width:100%; height:80vh; border:1px solid #ccd; border-radius:12px"></iframe>
   <script>
     (function () {
       'use strict';
@@ -42,10 +44,20 @@
       if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(e)) e = '';
       document.getElementById('conta').textContent = e ? 'Convite para ' + e : 'Sem ?e= (o Google mostra o seletor de conta).';
 
+      // Navegar para a /exec quebra no celular com várias contas: o Google põe /u/N/ e mostra "Não foi
+      // possível abrir o arquivo" (07/10). Iframe credentialless = sem cookies do Google = sem roteador de conta.
       function mostrarAbrir(s) {
         var a = document.createElement('a');
-        a.href = EXEC + '?s=' + s;
+        a.href = '#';
         a.textContent = 'Abrir o app com a sessão';
+        a.onclick = function (ev) {
+          ev.preventDefault();
+          var f = document.getElementById('app');
+          f.src = EXEC + '?s=' + s;
+          f.style.display = 'block';
+          f.scrollIntoView();
+          log('abrindo o app no iframe…');
+        };
         var p = document.getElementById('abrir'); p.textContent = ''; p.appendChild(a);
       }
       try { var s0 = localStorage.getItem(CHAVE); if (s0) { mostrarAbrir(s0); log('sessão guardada encontrada: abrir sem popup'); } } catch (x) {}
