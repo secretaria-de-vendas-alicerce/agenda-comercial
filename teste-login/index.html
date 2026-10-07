@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex">
+  <title>F0 · Entrar com Google</title>
+  <!--
+    F0 da ORD-AGENDA-LOGIN-001 §2, itens 1 e 6. Vai para .../agenda-comercial/teste-login/ no Pages.
+    CLIENT_ID e EXEC: preencher depois que o Diretor criar o cliente OAuth de teste e implantar o projeto
+    f0-login. O client_id é público; o client_secret NUNCA entra aqui.
+  -->
+  <script src="https://accounts.google.com/gsi/client" async></script>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; margin: 0; padding: 24px 16px; max-width: 28rem; margin-inline: auto; }
+    button { display: block; width: 100%; min-height: 48px; margin: 10px 0; font: 600 16px system-ui; border-radius: 12px; border: 0; background: #0369a1; color: #fff; }
+    button.sec { background: #e7ebf0; color: #14181f; }
+    pre { white-space: pre-wrap; background: #f4f6f9; padding: 10px; border-radius: 8px; font-size: 13px; }
+    a { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1 style="font-size:20px">F0 · Entrar com Google</h1>
+  <p id="conta"></p>
+  <button id="entrar" disabled>Entrar com Google</button>
+  <button id="planoB" class="sec" disabled>Item 6 · plano B (mandar o código pela URL)</button>
+  <p id="abrir"></p>
+  <pre id="saida">carregando o Google…</pre>
+  <script>
+    (function () {
+      'use strict';
+      var CLIENT_ID = '752268914025-5n8i734nd69t2o1tiih7bn4arhnj61vi.apps.googleusercontent.com';
+      var EXEC = 'https://script.google.com/macros/s/AKfycbyg6i7MxjRV1B9ala_ufMYEzWlrYXrFXgGQCUsVimNGfECs_sJwOJcHmYl0x-xj4PgB/exec';
+      var CHAVE = 'f0login.s';
+      var ESCOPOS = 'openid email https://www.googleapis.com/auth/calendar.events';
+      var saida = document.getElementById('saida');
+      var modo = 'fetch';
+      function log(t) { saida.textContent = new Date().toLocaleTimeString() + '  ' + t + '\n' + saida.textContent; }
+
+      var m = /[?&]e=([^&]+)/.exec(location.search);
+      var e = m ? decodeURIComponent(m[1]).trim() : '';
+      if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(e)) e = '';
+      document.getElementById('conta').textContent = e ? 'Convite para ' + e : 'Sem ?e= (o Google mostra o seletor de conta).';
+
+      function mostrarAbrir(s) {
+        var a = document.createElement('a');
+        a.href = EXEC + '?s=' + s;
+        a.textContent = 'Abrir o app com a sessão';
+        var p = document.getElementById('abrir'); p.textContent = ''; p.appendChild(a);
+      }
+      try { var s0 = localStorage.getItem(CHAVE); if (s0) { mostrarAbrir(s0); log('sessão guardada encontrada: abrir sem popup'); } } catch (x) {}
+
+      /** Item 6: POST text/plain (sem preflight) e seguir o 302 do Apps Script. */
+      function trocar(code) {
+        log('código recebido (' + code.length + ' caracteres); trocando no /exec…');
+        fetch(EXEC, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ acao: 'login', code: code }) })
+          .then(function (r) { return r.json(); })
+          .then(function (r) {
+            if (!r.ok) { log('recusado: ' + r.motivo); return; }
+            try { localStorage.setItem(CHAVE, r.s); } catch (x) {}
+            log('entrou como ' + r.email + '; sessão guardada');
+            mostrarAbrir(r.s);
+          })
+          .catch(function (err) { log('fetch falhou (item 6 → testar o plano B): ' + err); });
+      }
+
+      function iniciar() {
+        if (!window.google || !google.accounts || !google.accounts.oauth2) { setTimeout(iniciar, 200); return; }
+        var cliente = google.accounts.oauth2.initCodeClient({
+          client_id: CLIENT_ID, scope: ESCOPOS, ux_mode: 'popup',
+          access_type: 'offline', prompt: 'consent', login_hint: e || undefined,
+          callback: function (r) {
+            if (r.error) { log('Google devolveu erro: ' + r.error); return; }
+            if (modo === 'B') { location.href = EXEC + '?code=' + encodeURIComponent(r.code); return; }
+            trocar(r.code);
+          },
+          error_callback: function (err) { log('popup: ' + (err && err.type)); },
+        });
+        var b = document.getElementById('entrar');
+        b.disabled = false;
+        b.onclick = function () { modo = 'fetch'; log('abrindo o popup…'); cliente.requestCode(); };
+        var pb = document.getElementById('planoB');
+        pb.disabled = false;
+        // código é de uso único: o plano B pede um código NOVO e o leva ao /exec pela URL (o código, não token)
+        pb.onclick = function () { modo = 'B'; log('plano B: abrindo o popup…'); cliente.requestCode(); };
+        log('pronto. ' + navigator.userAgent.slice(0, 90));
+      }
+      iniciar();
+    })();
+  </script>
+</body>
+</html>
